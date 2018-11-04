@@ -1,48 +1,37 @@
-#include <iostream>
 #include <atomic>
+#include <chrono>
+#include <iostream>
 #include <memory>
 #include <string>
-#include <chrono>
 #include <thread>
 
-struct data_t
-{
+struct data_t {
   std::string s;
 };
 
-struct my_t
-{
+struct my_t {
   std::shared_ptr<data_t> cur;
-  std::atomic<data_t *> next;
+  std::atomic<data_t*> next;
 
-  my_t()  :
-    cur()
-    , next()
-  {}
+  my_t() : cur(), next() {}
 
-  std::string pop()
-  {
-    data_t *n = next.exchange(nullptr);
+  std::string pop() {
+    data_t* n = next.exchange(nullptr);
     if (n) {
       cur.reset(n);
     }
 
-    if(cur)
-    {
+    if (cur) {
       return cur->s;
     }
     return "";
-
   }
 
-  void push(std::string s){
-    delete next.exchange(new data_t{s});
-  }
+  void push(std::string s) { delete next.exchange(new data_t{s}); }
 };
 
 void producer(my_t& m, std::chrono::microseconds sleep) {
-  while(true)
-  {
+  while (true) {
     std::this_thread::sleep_for(sleep);
     std::string v = "v: " + std::to_string(std::rand());
     m.push(v);
@@ -51,9 +40,8 @@ void producer(my_t& m, std::chrono::microseconds sleep) {
 
 void consumer(my_t& m, std::chrono::microseconds sleep) {
   std::string last;
-  while(true)
-  {
-    //std::this_thread::sleep_for(sleep);
+  while (true) {
+    // std::this_thread::sleep_for(sleep);
     std::string n = m.pop();
     if (n != last) {
       last = std::move(n);
@@ -62,8 +50,7 @@ void consumer(my_t& m, std::chrono::microseconds sleep) {
   }
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
   my_t m;
   std::cout << std::boolalpha << m.next.is_lock_free() << std::endl;
   m.push("a");
